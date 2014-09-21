@@ -1,0 +1,718 @@
+---
+title: "SQL"
+author: ""
+date: ""
+output:
+  html_document:
+    toc: true
+    theme: united
+---
+
+3. 数据库和表的建立
+--------------
+
+### 数据库建立
+- 创建数据库：
+```
+CREATE DATABASE mysql_test;
+CREATE DATABASE IF NOT EXISTS mysql_test;
+```
+
+
+- 选择数据库：
+```
+USE mysql_test;
+USE IF EXISTS mysql_test;
+```
+
+- 修改数据库：
+```
+ALTER DATABASE mysql_test;
+```
+
+- 删除数据库：
+```
+DROP DATABASE mysql_test;
+DROP DATABSE IF EXISTS mysql_test;
+```
+
+- 查看数据库：
+```
+SHOW DATABASES;
+```
+
+### 表建立
+- 创建表(`CREATE TABLE`)：
+```
+CREATE TABLE customers # CREATE TABLE IF NOT EXISTScustomers
+(
+    cust_id INT NOT NULL AUTO_INCREMENT,
+    cust_name CHAR(50) NOT NULL,
+    cust_sex CHAR(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY(cust_id)
+) ENGINE=InnoDB;
+```
+
+- 更新表(`ALTER TABLE`)：
+```
+ALTER TABLE mysql_test.customers; # 数据库mysql_test的customers表
+```
+
+    - 添加列(`ADD COLUMN`)：
+    ```
+    ALTER TABLE mysql_test.customers
+    ADD COLUMN cust_city CHAR(50) NOT NULL DEFAULT "Wuhan" AFTER cust_sex;
+    ```
+
+    - 修改列名和数据类型(`CHANGE COLUMN`)：
+    ```
+    ALTER TABLE mysql_test.customers
+    CHANGE COLUMN cust_sex sex CAHR(1) NULL DEFAULT 'M';
+    ```
+    
+    - 修改或删除列中默认值(`ALTER COLUMN`)：
+    ```
+    ALTER TABLE mysql_test.customers
+    ALTER COLUMN cust_city SET DEFAULT 'Beijing';
+    ```
+    
+    - 修改列中数据类型(`MODIFY COLUMN`)：
+    ```
+    ALTER TABLE mysql_test.customers
+    MODIFY COLUMN cust_city char(20) FIRST; # FIRST 更改位置到第一列
+    ```
+    
+    - 删除列(`DROP COLUMN`)：
+    ```
+    ALTER TABLE mysql_test.customers
+    DROP COLUMN cust_city;
+    ```
+
+- 重命名表(`RENAME`)：
+    - ALTER TABLE + RENAME TO
+    ```
+    ALTER TABLE mysql_test.customers
+    RENAME TO mysql_test.backup_customers;
+    ```
+
+    - RENAME TABLE ... TO  ...
+    ```
+    RENAME TABLE mysql_test.customers TO mysql_test.backup_customers;
+    ```
+    
+- 复制表(`CREATE TABLE ... LIKE...`)
+```
+CREATE TABLE mysql_test.customers_copy
+LIKE mysql_test.customers;
+```
+
+- 删除表(`DROP`)
+```
+DEOP TABLE mysql_test.customer_copy;
+```
+
+- 查看表(`SHOW`)：
+```
+USE mysql_test
+SHOW customers;
+################
+DESC mysql_test.customers; # 查看表的结构
+```
+
+------------------------------------------------------------------------
+
+4. 表的基本操作
+--------------
+### 插入(`INSERT`)
+按列顺序插入整行：
+```
+INSERT INTO mysql_test.customers
+VALUES(901, '张三', 'F', 'Beijing', NULL);
+```
+
+指定列名插入整行：
+```
+INSERT INTO mysql_test.customers(cust_id, cust_name, cust_sex, cust_city)
+VALUES(0, '张三', DEFAULT, NULL);
+```
+
+插入部分列值：
+```
+INSERT INTO mysql_test.customers
+SET cust_name = '李四', cust_city = 'Beijing', cust_sex = DEFAULT;
+```
+
+插入多行：
+```
+INSERT INTO mysql_test.customers(cust_id, cust_name, cust_sex, cust_city)
+VALUES(0, '张三', DEFAULT, NULL),
+      (1000, '李四', DEFAULT, NULL) ;
+```
+
+从其他表插入：
+```
+INSERT INTO mysql_test.customers(cust_id, cust_name, cust_sex, cust_city)
+SELECT cust_id, cust_name, cust_sex, cust_city
+FROM mysql_test.customer.copy;
+```
+
+INSERT插入重复KEY时出错，用`REPLACE`语句插入：
+```
+REPLACE INTO mysql_test.customers(cust_id, cust_name, cust_sex, cust_city)
+VALUES  (0, '李四', DEFAULT, NULL) ;
+```
+
+### 删除(`DELETE`)
+单表删除：
+```
+DELETE FROM mysql_test.customers
+    WHERE cust_name = '王五';
+```
+
+多表删除：
+```
+DELETE tbl1, tbl2 FROM tbl1, tbl2, tbl3
+    WHERE tbl1.id = tbl2.id AND tbl2.id = tbl3.id;
+```
+
+快速删除所有行：
+```
+TRUNCATE TABLE mysql_test.customers_copy;
+```
+
+### 修改(`UPDATE`)
+
+单表修改：
+```
+UPDATE mysql_test.ccustomers
+    SET cust_city = 'Beijing' WHERE cust_name = '张三';
+```
+
+多表修改：
+```
+UPDATE tbl1, tbl2 SET tbl1.name='123'， tbl2.name='234'
+    WHERE tbl1.id = tbl2.id;
+```
+
+------------------------------------------------------------------------
+
+5. 数据库查询
+-----------
+关键词：`SLECT`、`FROM`、`WHERE`、`GROUP BY`、`HAVING`、`ORDER BY`、`LIMIT`
+
+### 选择指定列(`AS`, `CASE`)：
+```
+SELECT * FROM mysql_test.customers; 
+# 所有列
+SELECT cust_name, cust_sex FROM mysql_test.customers; 
+# cust_name, cust_sex两列
+SELECT cust_name, cust_sec AS name, sex 
+    FROM mysql_test.customers; 
+# cust_name重命名为name
+SELECT cust_name,
+    CASE 
+    WHEN cust_sex = 'M' THEN '男'
+    ELSE '女'
+    END AS '性别'
+    FROM mysql_test.customers;
+# cust_name, cust_sex两列并对sex的列名和值重新定义
+```
+
+### 字符串匹配(`LIKE`、`REGEXP`):
+```
+SELECT cust_name, cust_sex FROM mysql_test.customers
+    WHERE cust_name LIKE '万%';
+# 万为姓的客户 “%”匹配任意字符1个以上的数量
+SELECT cust_name, cust_sex FROM mysql_test.customers
+    WHERE cust_name LIKE '万_';
+# 万为姓，名字是两个字符的客户， “_”匹配1个任意字符
+SELECT cust_name, cust_sex FROM mysql_test.customers
+    WHERE cust_name LIKE '%#_% ESCAPE '#'';
+# 名字带有_的客户，ESCAPE定义转义符
+```
+
+### 判定范围(`BETWEEN...AND...`、`IN`、`IS NULL`)
+```
+SELECT * FROM mysql_test.customers
+    WHERE cust_id BETWEEN 100 AND 200;
+# id 从100到200
+SELECT * FROM mysql_test.customers
+    WHERE cust_id IN (100, 101, 108);
+# id 为100,101,108
+SELECT * FROM mysql_test.customers
+    WHERE cust_name IS NULL;
+# 姓名为空
+```
+
+### 分组和分组过滤(`GROUP BY`、`HAVING`):
+```
+SELECT cust_city, cust_sex, COUNT(*) AS num
+    FROM mysql_test.customers
+    GROUP BY cust_city, cust_sex;
+# 根据城市和性别汇总人数
+SELECT cust_city, cust_sex, COUNT(*) AS num
+    FROM mysql_test.customers
+    GROUP BY cust_city, cust_sex
+    HAVING num <= 3;
+# 根据城市和性别汇总人数，并选出总人数少于3的
+```
+
+### 排序(`ORDER BY`)
+```
+SELECT cust_city, cust_sex, COUNT(*) AS num
+    FROM mysql_test.customers
+    ORDER BY cust_city DESC, cust_sex;
+# 默认升序， DESC指明降序
+```
+
+### 限制返回(`LIMIT`):
+```
+SELECT cust_city, cust_sex, COUNT(*) AS num
+    FROM mysql_test.customers
+    ORDER BY cust_city DESC, cust_sex
+    LIMIT 4, 3;
+# 越过前4行，从第5行返回前3行
+```
+
+### 联合查询(`UNION`):
+```
+SELECT cust_city, cust_sex, COUNT(*) AS num
+    FROM mysql_test.customers
+    WHERE cust_city = 'Beijing'
+UNION
+SELECT cust_city, cust_sex, COUNT(*) AS num
+    FROM mysql_test.customers
+    WHERE cust_sex = 'M';
+```
+
+------------------------------------------------------------------------
+
+6. 索引
+----------
+### 创建索引
+- `CREATE INDEX`：
+```
+CREATE INDEX index_customer
+    ON mytest_sql.customers(cust_name(3) ASC);
+```
+
+- `CREATE TABLE`：
+```
+USE mysql_test
+CREATE TABLE seller
+(
+    seller_id INT NOT NULL AUTO_INCREMENT,
+    seller_price INT NOT NULL,
+    product_type INT(5) NOT NULL,
+    sale INT NULL,
+    PRIMARY KEY(seller, product_type),
+    INDEX index_seller(saler)
+);
+```
+
+- `ALTER TABLE`
+```
+ALTER TABLE mysql_test.seller
+    ADD INDEX index_seller(seller_id);
+```
+
+### 查看索引(`SHOW INDEX`)
+```
+SHOW INDEX FROM database.table WHERE ...
+```
+
+### 删除索引(`DROP INDEX`)
+```
+DROP INDEX index_cust ON mysql_test.seller;
+# DROP
+ALTER TABLE mysql_test.seller
+    DROP PRIMARY KEY
+    DROP INDEX index_cust;
+```
+
+------------------------------------------------------------------------
+
+7. 视图
+--------
+### 创建视图(`CREATE VIEW ... AS`)
+```
+CREATE OR REPLACE VIEW mysql_test.cust_view
+    AS
+    SELECT * FROM mysql_test.customers
+        WHERE cust_sex = 'M'
+WITH CHECK OPTION;
+```
+
+### 删除视图(`DROP VIEW`)
+```
+DROP VIEW IF EXISTS mysql_test.cust_views;
+```
+
+### 修改视图(`ALTER`)
+
+### 查看视图(`SHOW CREATE VIEW`)
+
+------------------------------------------------------------------------
+
+8. 数据完整性
+---------------
+
+### 实体完整性(`PRIMARY KEY`)
+```
+CREATE TABLE hi
+(
+    user_id INT NOT NULL PRIMARY KEY,
+    user_name CHAR(5) NOT NULL
+);
+```
+### 参照完整性(`REFERENCES...`)
+
+
+### 用户自定义完整性(`CHECK`)
+```
+CREATE TABLE hi
+(
+    user_id INT NOT NULL PRIMARY KEY,
+    user_name CHAR(5) NOT NULL
+        CHECK (user_name IN (SELECT name FROM customers))
+);
+```
+
+```
+CREATE TABLE hi
+(
+    user_id INT NOT NULL PRIMARY KEY,
+    user_name CHAR(5) NOT NULL,
+    user_price INT NOT NULL
+CHECK (user_price < 50 AND user_price > 20)
+);
+```
+
+------------------------------------------------------------------------
+
+9. 触发器
+-----------
+### 创建触发器(`CREATE TRIGGERS ... ON...`)
+```
+CREATE TRIGGER mysql_test.customers_trigger AFTER INSERT
+    ON mysql_test.customers FOR EACH ROW SET @str='one customer added!';
+```
+
+### 删除触发器(`DROP TRIGGER`)
+```
+DROP TRIGGER IF EXISTS mysql_test.customers_trigger;
+```
+
+### 使用触发器
+
+触发器一般包含三类：
+
+- INSERT触发器
+
+- DELETE触发器
+
+- UPDATE触发器
+
+INSERT设置每次插入显示ID号(`NEW`)：
+```
+CREATE TRIGGER mysql_test.customers_trigger AFTER INSERT
+    ON mysql_test.customers FOR EACH ROW SET @str=NEW.cust_id;
+```
+
+DELETE设置每次插入显示ID号(`OLD`)：
+```
+CREATE TRIGGER mysql_test.customers_trigger AFTER DELETE
+    ON mysql_test.customers FOR EACH ROW SET @str=OLD.cust_id;
+```
+
+------------------------------------------------------------------------
+
+10. 事件
+----------
+### 事件功能设置(`EVENT_SCHEDULER`)：
+
+```
+SHOW VARIABLES LIKE 'EVENT_SCHEDULER';
+# 查看事件功能是否开启
+SELECT @@EVENT_SCHEDULER;
+# same
+SET GLOBAL EVENT_SCHEDULER = 1;
+# 开始事件功能
+```
+
+### 创建事件(`CREATE EVENT`)
+
+```
+# 创建一个每隔3秒往test表中插入一条数据的事件
+CREATE EVENT IF NOT EXISTS test ON SCHEDULE EVERY 3 SECOND
+ON COMPLETION PRESERVE
+DO INSERT INTO test(id,t1) VALUES('',NOW());
+```
+
+```
+# 创建一个10分钟后清空test表数据的事件
+CREATE EVENT IF NOT EXISTS test
+ON SCHEDULE
+AT CURRENT_TIMESTAMP + INTERVAL 1 MINUTE
+DO TRUNCATE TABLE test.aaa;
+```
+
+```
+# 创建一个在2012-08-23 00:00:00时刻清空test表数据的事件
+CREATE EVENT IF NOT EXISTS test
+ON SCHEDULE
+AT TIMESTAMP '2012-08-23 00:00:00'
+DO TRUNCATE TABLE test;
+```
+
+```
+CREATE EVENT IF NOT EXISTS test ON SCHEDULE EVERY 3 SECOND
+STARTS '2012-08-22 21:49:00' 
+ENDS '2012-08-22 21:49:00'+ INTERVAL  10 MINUTE
+ON COMPLETION PRESERVE
+DO INSERT INTO test(id,t1) VALUES('',NOW());
+# 创建一个从2012年8月22日21点45分开始到10分钟后结束，运行每隔3秒往test表中插入一条数据的事件
+```
+### 修改事件(`ALTER EVENT`)
+```
+ALTER EVENT event_insert DISABLE;
+# 关闭事件
+ALTER EVENT event_insert
+    RENAME TO event_ins;
+# 重命名
+```
+
+### 删除事件(`DROP EVNET`)
+```
+DROP EVENT event_ins;
+```
+
+------------------------------------------------------------------------
+
+11. 存储过程和存储函数
+------------
+
+### 创建存储过程(`CREATE PROCEDURE`)
+```
+DELIMITER $$
+CREATE PROCEDURE update_sex(IN id INT, IN sex CHAR(1))
+BEGIN
+    UPDATE customers SET cust_sex = sex WHERE cust_id = id;
+END $$
+DELIMITER ;
+```
+
+### 调用过程(`CALL ...`)
+```
+CALL update_sex(1, 'M');
+```
+
+### 删除存储过程(`DROP PROCEDURE`)
+```
+DROP PROCEDURE update_sex;
+```
+
+### 创建存储函数(`CREATE FUNCTION`)
+```
+delimiter $
+    CREATE FUNCTION find_price(id int)
+    RETURNS INT
+    BEGIN
+        RETURN(SELECT sell_price from sell where sell_id = id);
+    END $
+delimiter ;
+```
+
+```
+delimiter $
+    CREATE FUNCTION find_city(id int)
+    RETURNS ChAR(10)
+    BEGIN
+        DECLARE city CHAR(2);
+        SELECT sell_city INTO city FROM sell WHERE sell_id = id;
+        IF city IS NULL THEN
+            RETURN(SELECT 'NO THIS ID!');
+            ELSE IF city = 'beijing' THEN
+            RETURN(SELECT '北京');
+                ELSE RETURN(SELECT 'NOT 北京');
+            END IF;
+        END IF;
+    END $
+delimiter ;
+```
+
+### 使用存储函数(`CREATE FUNCTION`)
+```
+SELECT find_price(1);
+SELECT find_city(1);
+```
+
+### 删除/修改存储函数(`DROP/ALTER FUNCTION`)
+
+
+------------------------------------------------------------------------
+
+12. 访问控制与安全管理
+------------------
+### 查看用户(`SELECT user FROM mysql.user`)
+
+### 创建用户(`CREATE USER`)
+```
+CREATE USER 'yalei'@'localhost' IDENTIFIED BY '0116';
+```
+
+### 删除用户(`DROP USER...`)
+
+### 重命名用户(`RENAME USER ... TO ...`)
+
+### 重新设置密码(`SET PASSWORD FOR ...`)
+```
+SELECT PASSWORD('1324');
+# *8C9B98F86D7C5A57E5FFD9A62058510C925EE197 
+SET PASSWORD FOR 'yalei'@'localhost' = '*8C9B98F86D7C5A57E5FFD9A62058510C925EE197';
+```
+
+### 查看权限(`SHOW GRANT FOR ...`)
+### 权限授予(`GRANT ... ON ... TO ...`)
+```
+GRANT SELECT, UPDATE, DELETE
+    ON hi.sell
+    TO 'yalei'@'localhost';
+```
+
+
+```
+GRANT ALL
+    ON *.*
+    TO 'yalei'@'new' IDENTIFIED BY '1234';
+# 新建主机并授予所有权限
+```
+### 权限撤销(`REVOKE ... ON ... FROM ...`)
+```
+REVOKE ALL  ON *.* FROM 'yalei'@'new';
+```
+
+---------------------------------
+
+13. 备份与恢复
+---------------
+
+### 备份到文件(`SELECT ... INTO OUTFILE`)
+```
+SELECT * FROM hi.sell
+INTO OUTFILE '/tmp/sell.txt'
+fields terminated by ','
+optionally enclosed by '"'
+lines terminated by '?';
+```
+
+### 导入备份(`LOAD DATA INFILE ... INTO TABLE...`)
+```
+CREATE TABLE hi.sell_copy LIKE hi.sell;
+# 新建sell_copy表，与sell表结构一致
+TRUNCATE TABLE hi.sell_copy;
+# 清空sell_copy表
+LOAD DATA INFILE '/tmp/sell.txt'
+INTO TABLE hi.sell_copy
+FIELDS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '?';
+# 从文件导入数据
+```
+
+### mysql备份(`mysqldump`)
+在**终端(非mysql内部)**中执行!
+
+- 备份表
+```
+mysqldump -h localhost -u root -p0116 hi sell > /tmp/sell2.sql;
+```
+
+- 备份库
+```
+mysqldump -u root -p0116 --databases hi > /tmp/hi.sql;
+```
+
+- 备份所有数据库
+```
+mysqldump -u root -p0116 --all-databases > /tmp/all.sql;
+```
+
+### 恢复备份(`mysqlimport/mysql`)
+
+- 恢复数据库： `mysql`
+```
+mysql -u root -p0116 hi_copy < /tmp/hi.sql;
+```
+
+- 恢复数据表(`mysqlimport`)
+```
+# mysqlimport -u root -p0116 hi /tmp/sell.txt;
+```
+
+--------------------------------------------------------------------------------
+
+14. PHP & MYSQL编程
+--------------------
+### 连接数据库(`mysql_connect`)
+```
+$con = mysql_connect('localhost', 'root', '0116');
+# 主机名；用户；密码
+```
+
+### 选择数据库(`mysql_select_db`)
+```
+mysql_select_db('hi', $con);
+# 数据库名，连接句柄
+```
+
+### 错误信息
+    - 错误编号(`mysql_errno()`)
+    - 错误信息(`mysql_error()`)
+
+### 查询函数(`mysql_query`)
+
+```
+mysql_query("set names 'utf8'");
+# 设置编码
+$sql = "select * from hi.sell"
+mysql_query($sql, $con);
+# 查询语句，连接句柄
+```
+
+### 返回PHP对象(`mysql_fetch_array`)
+```
+$result = mysql_query($sql, $con);
+$array = mysql_fetch_array($result, MYSQL_NUM);
+# 查询句柄，返回形式
+```
+
+### 指针(`mysql_data_seek`)
+
+```
+mysql_data_seek($result, 2);
+# 查询句柄，从第三条记录开始
+```
+
+### 例子：
+向hi数据库的sell表插入一条记录。
+```
+<?php
+$con = mysql_connect('localhost', 'root', '0116') 
+    or die('Fail to connect mysql!<br>');
+mysql_select_db('hi', $con)
+    or die('fail to connect database!<br>');
+
+$sql = "insert into sell(id, name, time) VALUES(NULL, 'zhaoyang', NOW());";
+$result = mysql_query($sql, $con);
+if (!$result) {
+    echo "Fail to query!";
+    die();
+}
+echo "Insert success!";
+?>
+```
+
+
+
+
